@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 	"time"
-
 	"bufio"
 	"log"
 	"os"
@@ -14,9 +13,9 @@ import (
 )
 
 const (
-	nNumber = 100000
-	nMap    = 100
-	nReduce = 50
+	nNumber = 10
+	nMap    = 1
+	nReduce = 1
 )
 
 // Create input file with N numbers
@@ -27,10 +26,32 @@ func MapFunc(file string, value string) (res []KeyValue) {
 	debug("Map %v\n", value)
 	words := strings.Fields(value)
 	for _, w := range words {
-		kv := KeyValue{w, ""}
+		kv := KeyValue{w, "1"}
 		res = append(res, kv)
 	}
 	return
+}
+func mapF(filename string, contents string) []KeyValue {
+	// TODO: you have to write this function
+	var kv []KeyValue
+	fmt.Printf("contents is %s\n",contents)
+	words := strings.Split(contents,"\n")
+	words = words[0:len(words) - 1]
+
+	for _,word := range words {
+		fmt.Printf("word %s \n",word)
+		kv = append(kv, KeyValue{word,strconv.Itoa(1)})
+	}
+	return kv
+}
+func reduceF(key string, values []string) string {
+	// TODO: you also have to write this function
+	s := 0
+	for _,value := range values {
+		t,_ := strconv.Atoi(value)
+		s += t
+	}
+	return strconv.Itoa(s)
 }
 
 // Just return key
@@ -107,7 +128,7 @@ func makeInputs(num int) []string {
 		}
 		w := bufio.NewWriter(file)
 		for i < (f+1)*(nNumber/num) {
-			fmt.Fprintf(w, "%d\n", i)
+			fmt.Fprintf(w, "%d \n", i)
 			i++
 		}
 		w.Flush()
@@ -144,7 +165,7 @@ func cleanup(mr *Master) {
 }
 
 func TestSequentialSingle(t *testing.T) {
-	mr := Sequential("test", makeInputs(1), 1, MapFunc, ReduceFunc)
+	mr := Sequential("test", makeInputs(1), 1, mapF, reduceF)
 	mr.Wait()
 	check(t, mr.files)
 	checkWorker(t, mr.stats)
@@ -152,7 +173,7 @@ func TestSequentialSingle(t *testing.T) {
 }
 
 func TestSequentialMany(t *testing.T) {
-	mr := Sequential("test", makeInputs(5), 3, MapFunc, ReduceFunc)
+	mr := Sequential("test", makeInputs(5), 3, mapF, reduceF)
 	mr.Wait()
 	check(t, mr.files)
 	checkWorker(t, mr.stats)
