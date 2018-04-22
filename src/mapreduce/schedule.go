@@ -31,6 +31,65 @@ func schedule(jobName string, mapFiles []string, nReduce int, phase jobPhase, re
 	// multiple tasks.
 	//
 	// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+	//type DoTaskArgs struct {
+	//	JobName    string
+	//	File       string   // only for map, the input file
+	//	Phase      jobPhase // are we in mapPhase or reducePhase?
+	//	TaskNumber int      // this task's index in the current phase
 	//
+	//	// NumOtherPhase is the total number of tasks in other phase; mappers
+	//	// need this to compute the number of output bins, and reducers needs
+	//	// this to know how many input files to collect.
+	//	NumOtherPhase int
+	//}
+	switch phase {
+	case mapPhase:
+		for i := 0; i < ntasks; i++ {
+			work := <- registerChan
+			args := DoTaskArgs{}
+			args.JobName = jobName
+			args.File = mapFiles[i]
+			args.Phase = mapPhase
+			args.TaskNumber = i
+			args.NumOtherPhase = nReduce
+			ok := call(work, "Worker.DoTask", args, new(struct{}))
+			if ok == false {
+				fmt.Printf("DoTask: RPC %s dotask error\n", work)
+			}
+			if ok {
+				go func() {
+					registerChan <- work
+				}()
+				} else {
+				i = i-1// if work faield the work will be abandoned
+				fmt.Printf("map Task %d field\n", i)
+			}
+
+		}
+	case reducePhase:
+		for i := 0; i < ntasks; i++ {
+			work := <- registerChan
+			args := DoTaskArgs{}
+			args.JobName = jobName
+			args.Phase = reducePhase
+			args.TaskNumber = i
+			args.NumOtherPhase = len(mapFiles)
+			ok := call(work, "Worker.DoTask", args, new(struct{}))
+			if ok == false {
+				fmt.Printf("DoTask: RPC %s dotask error\n", work)
+			}
+			if ok {
+				go func() {
+					registerChan <- work
+				}()
+
+			} else {
+				i = i-1//if work faield the work will be abandoned
+				fmt.Printf("reduce Task %d field\n", i)
+			}
+
+		}
+
+	}
 	fmt.Printf("Schedule: %v phase done\n", phase)
 }

@@ -141,10 +141,13 @@ func (mr *Master) run(jobName string, files []string, nreduce int,
 
 	schedule(mapPhase)
 	schedule(reducePhase)
+	fmt.Printf("%s: Map/Reduce task completed\n", mr.address)
+
 	finish()
+	fmt.Printf("%s: merge task begin\n",mr.address)
 	mr.merge()
 
-	fmt.Printf("%s: Map/Reduce task completed\n", mr.address)
+	fmt.Printf("%s: merge task completed\n",mr.address)
 
 	mr.doneChannel <- true
 }
